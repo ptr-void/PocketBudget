@@ -15,11 +15,12 @@ export default function BudgetScreen({ navigation }) {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
   const { budgets, setBudget, fetchBudgets } = useBudgetStore();
-  const { getTotal } = useExpenseStore();
+  const { getTotal, expenses } = useExpenseStore();
 
   const [dailyBudget, setDailyBudget] = useState(String(budgets.daily || ''));
   const [weeklyBudget, setWeeklyBudget] = useState(String(budgets.weekly || ''));
   const [monthlyBudget, setMonthlyBudget] = useState(String(budgets.monthly || ''));
+  const [allTimeBudget, setAllTimeBudget] = useState(String(budgets['all-time'] || ''));
 
   useEffect(() => {
     if (user) fetchBudgets(user.id);
@@ -29,6 +30,7 @@ export default function BudgetScreen({ navigation }) {
     setDailyBudget(String(budgets.daily || ''));
     setWeeklyBudget(String(budgets.weekly || ''));
     setMonthlyBudget(String(budgets.monthly || ''));
+    setAllTimeBudget(String(budgets['all-time'] || ''));
   }, [budgets]);
 
   const handleSave = async (period, value) => {
@@ -38,7 +40,7 @@ export default function BudgetScreen({ navigation }) {
   };
 
   const renderBudgetCard = (period, value, setValue, icon, gradientColors) => {
-    const spent = getTotal(period);
+    const spent = period === 'all-time' ? expenses.reduce((s, e) => s + (e.amount || 0), 0) : getTotal(period);
     const budget = parseFloat(value) || 0;
     const remaining = budget - spent;
     const progress = budget > 0 ? Math.min(spent / budget, 1) : 0;
@@ -146,6 +148,7 @@ export default function BudgetScreen({ navigation }) {
           {renderBudgetCard('daily', dailyBudget, setDailyBudget, 'today', ['#F59E0B', '#D97706'])}
           {renderBudgetCard('weekly', weeklyBudget, setWeeklyBudget, 'calendar-outline', ['#3B82F6', '#2563EB'])}
           {renderBudgetCard('monthly', monthlyBudget, setMonthlyBudget, 'calendar', ['#8B5CF6', '#6D28D9'])}
+          {renderBudgetCard('all-time', allTimeBudget, setAllTimeBudget, 'wallet', ['#EC4899', '#BE185D'])}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

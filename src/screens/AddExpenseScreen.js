@@ -7,14 +7,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { useExpenseStore, useCategoryStore } from '../store/stores';
+import { useExpenseStore, useCategoryStore, useBudgetStore } from '../store/stores';
+import { triggerBudgetAlert } from '../services/notifications';
 import { DEFAULT_CATEGORIES, PAYMENT_METHODS, Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '../theme/theme';
 import { format } from 'date-fns';
 
 export default function AddExpenseScreen({ navigation, route }) {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
-  const { addExpense, updateExpense, deleteExpense } = useExpenseStore();
+  const { addExpense, updateExpense, deleteExpense, getTotal } = useExpenseStore();
+  const { budgets } = useBudgetStore();
   const { categories } = useCategoryStore();
   const editingExpense = route?.params?.expense;
 
@@ -52,6 +54,19 @@ export default function AddExpenseScreen({ navigation, route }) {
       } else {
         await addExpense(expenseData);
       }
+
+      // Check budget alerts
+      const amountFloat = parseFloat(amount);
+      if (budgets.monthly > 0) {
+        const spentMonthly = getTotal('monthly') + (editingExpense ? amountFloat - editingExpense.amount : amountFloat);
+        const remaining = budgets.monthly - spentMonthly;
+        if (spentMonthly >= budgets.monthly * 0.85) triggerBudgetAlert(remaining, 'monthly');
+      } else if (budgets.weekly > 0) {
+        const spentWeekly = getTotal('weekly') + (editingExpense ? amountFloat - editingExpense.amount : amountFloat);
+        const remaining = budgets.weekly - spentWeekly;
+        if (spentWeekly >= budgets.weekly * 0.85) triggerBudgetAlert(remaining, 'weekly');
+      }
+
       navigation.goBack();
     } catch (err) {
       Alert.alert('Error', err.message || 'Failed to save');

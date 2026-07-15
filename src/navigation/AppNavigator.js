@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import AnimatedTabBar from '../components/AnimatedTabBar';
 
 import DashboardScreen from '../screens/DashboardScreen';
 import AddExpenseScreen from '../screens/AddExpenseScreen';
@@ -19,6 +20,7 @@ import CategoriesScreen from '../screens/CategoriesScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignUpScreen from '../screens/SignUpScreen';
 import HistoryScreen from '../screens/HistoryScreen';
+import CalendarScreen from '../screens/CalendarScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -28,50 +30,11 @@ function HomeTabs() {
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarStyle: {
-          backgroundColor: colors.tabBar,
-          borderTopColor: colors.tabBarBorder,
-          borderTopWidth: 1,
-          height: 88,
-          paddingBottom: 28,
-          paddingTop: 8,
-          elevation: 0,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-        },
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-          switch (route.name) {
-            case 'Home': iconName = focused ? 'home' : 'home-outline'; break;
-            case 'Add': iconName = focused ? 'add-circle' : 'add-circle-outline'; break;
-            case 'History': iconName = focused ? 'time' : 'time-outline'; break;
-            case 'Groups': iconName = focused ? 'people' : 'people-outline'; break;
-            case 'Profile': iconName = focused ? 'person' : 'person-outline'; break;
-          }
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-      })}
+      tabBar={props => <AnimatedTabBar {...props} />}
+      screenOptions={{ headerShown: false }}
     >
       <Tab.Screen name="Home" component={DashboardScreen} />
-      <Tab.Screen
-        name="Add"
-        component={AddExpenseScreen}
-        options={{
-          tabBarIcon: ({ focused, size }) => (
-            <Ionicons
-              name="add-circle"
-              size={32}
-              color={colors.primary}
-            />
-          ),
-        }}
-      />
+      <Tab.Screen name="Add" component={AddExpenseScreen} />
       <Tab.Screen name="History" component={HistoryScreen} />
       <Tab.Screen name="Groups" component={GroupsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
@@ -134,6 +97,11 @@ export default function AppNavigator() {
           <Stack.Screen
             name="AIInsights"
             component={AIInsightsScreen}
+            options={{ animation: 'slide_from_right' }}
+          />
+          <Stack.Screen
+            name="Calendar"
+            component={CalendarScreen}
             options={{ animation: 'slide_from_right' }}
           />
         </>

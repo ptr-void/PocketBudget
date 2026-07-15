@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pocketbudget.app",
+      "bundleIdentifier": "com.lichael.pocketbudget",
       "infoPlist": {
         "CFBundleURLTypes": [
           {
@@ -38,7 +38,7 @@
         "backgroundColor": "#7C3AED"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.pocketbudget.app",
+      "package": "com.lichael.pocketbudget",
       "intentFilters": [
         {
           "action": "VIEW",
@@ -60,9 +60,8 @@
     "plugins": [],
     "extra": {
       "eas": {
-        "projectId": "f65e3340-6d0c-4c52-b1cd-b34095147970"
+        "projectId": "b8df7ff2-28c6-4b00-af07-f89b3c12f9ba"
       }
-    },
-    "owner": "mrxceptions-organization"
+    }
   }
 }

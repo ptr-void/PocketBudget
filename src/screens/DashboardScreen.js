@@ -4,6 +4,7 @@ import {
   RefreshControl, Dimensions, StatusBar, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { LineChart } from 'react-native-chart-kit';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../context/ThemeContext';
@@ -59,7 +60,7 @@ export default function DashboardScreen({ navigation }) {
     setEditWallet(false);
   };
 
-  const totalSpent = getTotal(period);
+  const totalSpent = period === 'all-time' ? expenses.reduce((s, e) => s + (e.amount || 0), 0) : getTotal(period);
   const budget = budgets[period] || 0;
   const remaining = budget - totalSpent;
   const progress = budget > 0 ? Math.min(totalSpent / budget, 1) : 0;
@@ -75,7 +76,7 @@ export default function DashboardScreen({ navigation }) {
   const topCategories = getSpendingByCategory(expenses).slice(0, 4);
   const recentExpenses = expenses.slice(0, 5);
 
-  const periods = ['daily', 'weekly', 'monthly'];
+  const periods = ['daily', 'weekly', 'monthly', 'all-time'];
 
   return (
     <View style={styles.container}>
@@ -87,19 +88,35 @@ export default function DashboardScreen({ navigation }) {
         style={StyleSheet.absoluteFillObject}
       />
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" />
-        }
-      >
+      <SafeAreaView edges={['top']} style={{ flex: 1 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFF" progressViewOffset={20} />
+          }
+        >
         <View style={styles.headerBg}>
           <View style={styles.headerContent}>
-            <View>
-              <Text style={styles.greeting}>Go get 'em,</Text>
-              <Text style={styles.userName}>{user?.user_metadata?.full_name?.split(' ')[0] || 'User'}!</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <View style={[styles.logoContainer, Shadow.md]}>
+                <LinearGradient colors={['#A78BFA', '#7C3AED']} style={styles.logoGradient}>
+                  <Ionicons name="wallet" size={24} color="#FFF" />
+                </LinearGradient>
+              </View>
+              <View>
+                <Text style={styles.greeting}>Go get 'em,</Text>
+                <Text style={styles.userName}>{user?.user_metadata?.full_name?.split(' ')[0] || 'User'}!</Text>
+              </View>
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity
+                style={styles.budgetButton}
+                onPress={() => navigation.navigate('Calendar')}
+              >
+                <View style={styles.glassButton}>
+                  <Ionicons name="calendar-outline" size={22} color="#FFF" />
+                </View>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.budgetButton}
                 onPress={() => navigation.navigate('AIInsights')}
@@ -119,7 +136,12 @@ export default function DashboardScreen({ navigation }) {
             </View>
           </View>
 
-          <View style={styles.periodRow}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={styles.periodRow}
+            contentContainerStyle={{ gap: Spacing.sm, paddingRight: Spacing.xl }}
+          >
             {periods.map((p) => (
               <TouchableOpacity
                 key={p}
@@ -128,11 +150,11 @@ export default function DashboardScreen({ navigation }) {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.periodText, period === p && styles.periodTextActive]}>
-                  {p.charAt(0).toUpperCase() + p.slice(1)}
+                  {p === 'all-time' ? 'All-Time' : p.charAt(0).toUpperCase() + p.slice(1)}
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
 
           <View style={[styles.totalCard, isDark ? styles.glassDark : styles.glassLight, Shadow.xl]}>
             <View style={styles.totalCardHeader}>
@@ -314,7 +336,8 @@ export default function DashboardScreen({ navigation }) {
 
           <View style={{ height: 24 }} />
         </View>
-      </ScrollView>
+        </ScrollView>
+      </SafeAreaView>
 
       <View style={styles.fabContainer}>
         <TouchableOpacity style={Shadow.lg} activeOpacity={0.8} onPress={() => setQuickAddVisible(true)}>
@@ -341,11 +364,13 @@ export default function DashboardScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   headerBg: {
-    paddingTop: 60, paddingBottom: 24, paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md, paddingBottom: 24, paddingHorizontal: Spacing.xl,
   },
   headerContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  logoContainer: { width: 44, height: 44, borderRadius: 14, overflow: 'hidden' },
+  logoGradient: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   greeting: { color: 'rgba(255,255,255,0.8)', fontSize: FontSize.md, fontWeight: '500' },
-  userName: { color: '#FFF', fontSize: 28, fontWeight: '800', letterSpacing: 0.5 },
+  userName: { color: '#FFF', fontSize: 24, fontWeight: '800', letterSpacing: 0.5 },
 
   budgetButton: { borderRadius: 24, overflow: 'hidden' },
   glassButton: {
@@ -353,7 +378,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
 
-  periodRow: { flexDirection: 'row', marginTop: Spacing.xl, gap: Spacing.sm },
+  periodRow: { marginTop: Spacing.xl },
   periodChip: {
     paddingHorizontal: Spacing.lg, paddingVertical: 8,
     borderRadius: BorderRadius.full, backgroundColor: 'rgba(255,255,255,0.15)',

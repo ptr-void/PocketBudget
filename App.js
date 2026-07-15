@@ -5,6 +5,7 @@ import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider } from './src/context/ThemeContext';
 import AppNavigator from './src/navigation/AppNavigator';
 import QuickAddModal from './src/components/QuickAddModal';
+import { registerForPushNotificationsAsync, scheduleRecurringNotifications } from './src/services/notifications';
 
 const prefix = Linking.createURL('/');
 
@@ -43,6 +44,11 @@ export default function App() {
 
     Linking.getInitialURL().then((url) => {
       if (url) handleDeepLink(url);
+    });
+
+    // Initialize notifications
+    registerForPushNotificationsAsync().then(() => {
+      scheduleRecurringNotifications();
     });
 
 

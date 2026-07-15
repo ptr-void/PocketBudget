@@ -121,7 +121,7 @@ export default function AIInsightsScreen({ navigation }) {
               <Ionicons name="receipt" size={18} color="#FFF" />
             </LinearGradient>
             <Text style={[styles.statValue, isDark && { color: '#FFF' }]}>{expenses.length}</Text>
-            <Text style={[styles.statMiniLabel, isDark && { color: '#9CA3AF' }]}>Tracked</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.statMiniLabel, isDark && { color: '#9CA3AF' }]}>Tracked</Text>
           </View>
           <View style={[styles.statMini, isDark ? styles.cardDark : styles.cardLight, Shadow.sm]}>
             <LinearGradient colors={['#F59E0B', '#D97706']} style={styles.statIcon}>
@@ -133,7 +133,7 @@ export default function AIInsightsScreen({ navigation }) {
                 return acc;
               }, {})).length}
             </Text>
-            <Text style={[styles.statMiniLabel, isDark && { color: '#9CA3AF' }]}>Categories</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.statMiniLabel, isDark && { color: '#9CA3AF' }]}>Categories</Text>
           </View>
           <View style={[styles.statMini, isDark ? styles.cardDark : styles.cardLight, Shadow.sm]}>
             <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.statIcon}>
@@ -142,7 +142,7 @@ export default function AIInsightsScreen({ navigation }) {
             <Text style={[styles.statValue, isDark && { color: '#FFF' }]}>
               {new Set(expenses.map(e => e.date)).size}
             </Text>
-            <Text style={[styles.statMiniLabel, isDark && { color: '#9CA3AF' }]}>Active Days</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.statMiniLabel, isDark && { color: '#9CA3AF' }]}>Active Days</Text>
           </View>
         </View>
 

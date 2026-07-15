@@ -6,14 +6,16 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { useExpenseStore, useCategoryStore } from '../store/stores';
+import { useExpenseStore, useCategoryStore, useBudgetStore } from '../store/stores';
+import { triggerBudgetAlert } from '../services/notifications';
 import { DEFAULT_CATEGORIES, Spacing, BorderRadius, FontSize, FontWeight } from '../theme/theme';
 import { format } from 'date-fns';
 
 export default function QuickAddModal({ visible, onClose }) {
   const { colors } = useTheme();
   const { user } = useAuth();
-  const { addExpense } = useExpenseStore();
+  const { addExpense, getTotal } = useExpenseStore();
+  const { budgets } = useBudgetStore();
   const { categories } = useCategoryStore();
   const [amount, setAmount] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_CATEGORIES[0].id);
@@ -38,6 +40,19 @@ export default function QuickAddModal({ visible, onClose }) {
         note: '',
         payment_method: paymentMethod || null,
       });
+
+      // Check budget alerts
+      const amountFloat = parseFloat(amount);
+      if (budgets.monthly > 0) {
+        const spentMonthly = getTotal('monthly') + amountFloat;
+        const remaining = budgets.monthly - spentMonthly;
+        if (spentMonthly >= budgets.monthly * 0.85) triggerBudgetAlert(remaining, 'monthly');
+      } else if (budgets.weekly > 0) {
+        const spentWeekly = getTotal('weekly') + amountFloat;
+        const remaining = budgets.weekly - spentWeekly;
+        if (spentWeekly >= budgets.weekly * 0.85) triggerBudgetAlert(remaining, 'weekly');
+      }
+
       setAmount('');
       setPaymentMethod('');
       onClose();

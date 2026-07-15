@@ -1,4 +1,4 @@
-const GROQ_API_KEY = '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';
+const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY;
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 export const getAIInsights = async (expenses, budgets) => {
