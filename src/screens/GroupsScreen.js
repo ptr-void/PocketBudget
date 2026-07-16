@@ -275,7 +275,15 @@ export default function GroupsScreen({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {groups.length === 0 && invites.length === 0 ? (
+      {offlineMode ? (
+        <View style={styles.emptyState}>
+          <View style={[styles.emptyIcon, isDark ? { backgroundColor: 'rgba(124,58,237,0.2)' } : { backgroundColor: 'rgba(139,92,246,0.1)' }]}>
+            <Ionicons name="cloud-offline-outline" size={64} color={isDark ? '#A78BFA' : '#8B5CF6'} />
+          </View>
+          <Text style={[styles.emptyTitle, isDark && { color: '#FFF' }]}>Not Available Offline</Text>
+          <Text style={[styles.emptyText, isDark && { color: '#9CA3AF' }]}>Groups require an internet connection. Please log in with your account to access groups.</Text>
+        </View>
+      ) : groups.length === 0 && invites.length === 0 ? (
         <View style={styles.emptyState}>
           <View style={[styles.emptyIcon, isDark ? { backgroundColor: 'rgba(124,58,237,0.2)' } : { backgroundColor: 'rgba(139,92,246,0.1)' }]}>
             <Ionicons name="people-outline" size={64} color={isDark ? '#A78BFA' : '#8B5CF6'} />
@@ -299,7 +307,7 @@ export default function GroupsScreen({ navigation }) {
         />
       )}
 
-      <Modal visible={showModal} transparent animationType="slide">
+      <Modal visible={showModal} transparent animationType="fade">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={[styles.modalContent, isDark ? styles.modalDark : styles.modalLight]}>
             <View style={styles.modalHeader}>

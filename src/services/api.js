@@ -51,13 +51,31 @@ export const fetchExpenses = async (userId) => {
 };
 
 export const addExpense = async (expense) => {
-  const { data, error } = await supabase.from('expenses').insert(expense).select().single();
+  const isUUID = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+  
+  const dbPayload = { ...expense };
+  if (dbPayload.category_id && !isUUID(dbPayload.category_id)) {
+    dbPayload.category_id = null;
+  }
+  delete dbPayload._offline;
+  delete dbPayload.categories;
+
+  const { data, error } = await supabase.from('expenses').insert(dbPayload).select().single();
   if (error) throw error;
   return data;
 };
 
 export const updateExpense = async (id, updates) => {
-  const { data, error } = await supabase.from('expenses').update(updates).eq('id', id).select().single();
+  const isUUID = (str) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+  
+  const dbPayload = { ...updates };
+  if (dbPayload.category_id !== undefined && !isUUID(dbPayload.category_id)) {
+    dbPayload.category_id = null;
+  }
+  delete dbPayload.categories;
+  delete dbPayload._offline;
+
+  const { data, error } = await supabase.from('expenses').update(dbPayload).eq('id', id).select().single();
   if (error) throw error;
   return data;
 };
@@ -83,6 +101,11 @@ export const addCategory = async (category) => {
   const { data, error } = await supabase.from('categories').insert(category).select().single();
   if (error) throw error;
   return data;
+};
+
+export const deleteCategory = async (id) => {
+  const { error } = await supabase.from('categories').delete().eq('id', id);
+  if (error) throw error;
 };
 
 

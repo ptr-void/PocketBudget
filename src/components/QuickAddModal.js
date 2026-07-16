@@ -20,6 +20,7 @@ export default function QuickAddModal({ visible, onClose }) {
   const [amount, setAmount] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_CATEGORIES[0].id);
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
 
   const PAYMENT_METHODS = ['Cash', 'GCash', 'Card', 'Bank Transfer', 'PayMaya'];
@@ -37,7 +38,7 @@ export default function QuickAddModal({ visible, onClose }) {
         category_id: selectedCategory,
         category_name: selectedCat?.name || 'Other',
         date: format(new Date(), 'yyyy-MM-dd'),
-        note: '',
+        note: note.trim(),
         payment_method: paymentMethod || null,
       });
 
@@ -55,13 +56,14 @@ export default function QuickAddModal({ visible, onClose }) {
 
       setAmount('');
       setPaymentMethod('');
+      setNote('');
       onClose();
     } catch {}
     setSaving(false);
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="fade">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.overlay}
@@ -115,6 +117,17 @@ export default function QuickAddModal({ visible, onClose }) {
             })}
           </ScrollView>
 
+          <View style={[styles.noteContainer, { backgroundColor: colors.inputBg, borderColor: colors.border }]}>
+            <Ionicons name="document-text-outline" size={18} color={colors.textMuted} />
+            <TextInput
+              style={[styles.noteInput, { color: colors.text }]}
+              placeholder="What was this for?"
+              placeholderTextColor={colors.textMuted}
+              value={note}
+              onChangeText={setNote}
+            />
+          </View>
+
           <Text style={{ fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5, color: colors.textMuted, marginBottom: 8 }}>Payment Method</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
             {PAYMENT_METHODS.map((pm) => {
@@ -163,6 +176,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, borderWidth: 1,
     marginRight: Spacing.sm, gap: 4,
+  },
+  noteContainer: {
+    flexDirection: 'row', alignItems: 'center',
+    borderRadius: BorderRadius.lg, paddingHorizontal: Spacing.md,
+    height: 50, marginBottom: Spacing.lg, borderWidth: 1, gap: 8,
+  },
+  noteInput: {
+    flex: 1, fontSize: 15, fontWeight: '500',
   },
   saveBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',

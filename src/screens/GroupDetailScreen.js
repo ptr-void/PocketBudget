@@ -420,7 +420,7 @@ export default function GroupDetailScreen({ route, navigation }) {
       </ScrollView>
 
       {/* Add Expense Modal */}
-      <Modal visible={showAddModal} transparent animationType="slide">
+      <Modal visible={showAddModal} transparent animationType="fade">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <ScrollView style={[styles.modalContent, isDark ? styles.modalDark : styles.modalLight]} keyboardShouldPersistTaps="handled">
             <View style={styles.modalHeader}>
@@ -510,7 +510,7 @@ export default function GroupDetailScreen({ route, navigation }) {
       </Modal>
 
       {/* Add Member Modal */}
-      <Modal visible={showMemberModal} transparent animationType="slide">
+      <Modal visible={showMemberModal} transparent animationType="fade">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={[styles.modalContent, isDark ? styles.modalDark : styles.modalLight]}>
             <View style={styles.modalHeader}>
@@ -534,7 +534,7 @@ export default function GroupDetailScreen({ route, navigation }) {
       </Modal>
 
       {/* Budget Contribution Modal */}
-      <Modal visible={showContribModal} transparent animationType="slide">
+      <Modal visible={showContribModal} transparent animationType="fade">
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.modalOverlay}>
           <View style={[styles.modalContent, isDark ? styles.modalDark : styles.modalLight]}>
             <View style={styles.modalHeader}>

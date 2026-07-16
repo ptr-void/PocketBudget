@@ -11,6 +11,7 @@ import { useExpenseStore, useCategoryStore, useBudgetStore } from '../store/stor
 import { triggerBudgetAlert } from '../services/notifications';
 import { DEFAULT_CATEGORIES, PAYMENT_METHODS, Spacing, BorderRadius, FontSize, FontWeight, Shadow } from '../theme/theme';
 import { format } from 'date-fns';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 export default function AddExpenseScreen({ navigation, route }) {
   const { colors, isDark } = useTheme();
@@ -26,8 +27,18 @@ export default function AddExpenseScreen({ navigation, route }) {
   );
   const [note, setNote] = useState(editingExpense?.note || '');
   const [date, setDate] = useState(editingExpense?.date || format(new Date(), 'yyyy-MM-dd'));
+  const [dateObj, setDateObj] = useState(editingExpense?.date ? new Date(editingExpense.date) : new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState(editingExpense?.payment_method || '');
   const [saving, setSaving] = useState(false);
+
+  const onChangeDate = (event, selectedDate) => {
+    if (Platform.OS === 'android') setShowDatePicker(false);
+    if (selectedDate) {
+      setDateObj(selectedDate);
+      setDate(format(selectedDate, 'yyyy-MM-dd'));
+    }
+  };
 
   const cats = categories.length > 0 ? categories : DEFAULT_CATEGORIES;
 
@@ -65,6 +76,16 @@ export default function AddExpenseScreen({ navigation, route }) {
         const spentWeekly = getTotal('weekly') + (editingExpense ? amountFloat - editingExpense.amount : amountFloat);
         const remaining = budgets.weekly - spentWeekly;
         if (spentWeekly >= budgets.weekly * 0.85) triggerBudgetAlert(remaining, 'weekly');
+      }
+
+      // Clear state so the form is fresh next time you tap the "Add" tab
+      if (!editingExpense) {
+        setAmount('');
+        setNote('');
+        setDate(format(new Date(), 'yyyy-MM-dd'));
+        setDateObj(new Date());
+        setPaymentMethod('');
+        setSelectedCategory(cats[0]?.id || DEFAULT_CATEGORIES[0].id);
       }
 
       navigation.goBack();
@@ -152,13 +173,29 @@ export default function AddExpenseScreen({ navigation, route }) {
 
             <View style={[styles.inputContainer, isDark ? styles.inputDark : styles.inputLight]}>
               <Ionicons name="calendar-outline" size={20} color={isDark ? '#9CA3AF' : '#6B7280'} />
-              <TextInput
-                style={[styles.input, isDark && { color: '#FFF' }]}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-                value={date}
-                onChangeText={setDate}
-              />
+              {Platform.OS === 'ios' ? (
+                <View style={{ flex: 1, alignItems: 'flex-start', justifyContent: 'center' }}>
+                  <DateTimePicker
+                    value={dateObj}
+                    mode="date"
+                    display="compact"
+                    themeVariant={isDark ? 'dark' : 'light'}
+                    onChange={onChangeDate}
+                  />
+                </View>
+              ) : (
+                <TouchableOpacity onPress={() => setShowDatePicker(true)} style={{ flex: 1, justifyContent: 'center' }}>
+                  <Text style={[styles.input, isDark && { color: '#FFF' }, { paddingTop: 18 }]}>{date}</Text>
+                </TouchableOpacity>
+              )}
+              {Platform.OS === 'android' && showDatePicker && (
+                <DateTimePicker
+                  value={dateObj}
+                  mode="date"
+                  display="default"
+                  onChange={onChangeDate}
+                />
+              )}
             </View>
           </View>
 

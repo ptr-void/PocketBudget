@@ -24,7 +24,7 @@ const COLOR_OPTIONS = [
 export default function CategoriesScreen({ navigation }) {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
-  const { categories, addCategory, fetchCategories } = useCategoryStore();
+  const { categories, addCategory, fetchCategories, deleteCategory } = useCategoryStore();
   const [showModal, setShowModal] = useState(false);
   const [newName, setNewName] = useState('');
   const [newIcon, setNewIcon] = useState('fast-food');
@@ -50,12 +50,28 @@ export default function CategoriesScreen({ navigation }) {
     setNewName('');
   };
 
+  const handleDelete = (item) => {
+    Alert.alert('Delete Category', `Are you sure you want to delete "${item.name}"?`, [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteCategory(item.id) },
+    ]);
+  };
+
   const renderCategory = ({ item }) => {
-    const isDefault = item.is_default;
+    const isDefault = item.is_default || DEFAULT_CATEGORIES.some(c => c.id === item.id);
     const catColor = item.color || colors.primary;
     
     return (
       <View style={[styles.categoryCard, isDark ? styles.cardDark : styles.cardLight, Shadow.md]}>
+        {!isDefault && (
+          <TouchableOpacity 
+            style={styles.deleteBtn} 
+            onPress={() => handleDelete(item)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="trash" size={16} color="#EF4444" />
+          </TouchableOpacity>
+        )}
         <View style={[styles.iconBox, { backgroundColor: catColor + '15' }]}>
           <Ionicons name={item.icon || 'ellipsis-horizontal'} size={28} color={catColor} />
         </View>
@@ -96,7 +112,7 @@ export default function CategoriesScreen({ navigation }) {
       </View>
 
       <FlatList
-        data={categories.length > 0 ? categories : DEFAULT_CATEGORIES}
+        data={categories}
         renderItem={renderCategory}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
@@ -105,7 +121,7 @@ export default function CategoriesScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
       />
 
-      <Modal visible={showModal} transparent animationType="slide">
+      <Modal visible={showModal} transparent animationType="fade">
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
@@ -216,6 +232,7 @@ const styles = StyleSheet.create({
   categoryName: { fontSize: 16, fontWeight: '700', color: '#111827', textAlign: 'center' },
   badge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, marginTop: -4 },
   badgeText: { fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  deleteBtn: { position: 'absolute', top: 12, right: 12, width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(239, 68, 68, 0.1)', alignItems: 'center', justifyContent: 'center', zIndex: 10 },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: Spacing.xl, maxHeight: '90%' },

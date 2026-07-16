@@ -21,13 +21,6 @@ export const useExpenseStore = create(
           
           const state = get();
           let finalData = data;
-          
-          if (state.addQueue && state.addQueue.length > 0) {
-            await state.syncOfflineExpenses(userId);
-            
-            finalData = await api.fetchExpenses(userId);
-          }
-          
           set({ expenses: finalData, loading: false });
         } catch (error) {
           
@@ -40,8 +33,6 @@ export const useExpenseStore = create(
           const data = await api.addExpense(expense);
           set((state) => ({ expenses: [data, ...state.expenses] }));
           
-          
-          get().syncOfflineExpenses(expense.user_id);
           return data;
         } catch (error) {
           
@@ -61,11 +52,12 @@ export const useExpenseStore = create(
         const newQueue = [];
         for (const item of queue) {
           try {
-            
             const { id, _offline, ...dbPayload } = item;
+            if (dbPayload.user_id === 'offline') {
+              dbPayload.user_id = userId;
+            }
             await api.addExpense(dbPayload);
           } catch (err) {
-            
             newQueue.push(item);
           }
         }
@@ -126,8 +118,9 @@ export const useExpenseStore = create(
 
 export const useBudgetStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       budgets: { daily: 0, weekly: 0, monthly: 0 },
+      addQueue: [],
       loading: false,
 
       fetchBudgets: async (userId) => {
@@ -138,18 +131,35 @@ export const useBudgetStore = create(
           data.forEach((b) => { budgets[b.period] = b.amount; });
           set({ budgets, loading: false });
         } catch {
-          
           set({ loading: false });
         }
       },
 
       setBudget: async (userId, period, amount) => {
-        try {
-          await api.upsertBudget({ user_id: userId, period, amount });
-        } catch {}
         set((state) => ({
           budgets: { ...state.budgets, [period]: amount },
         }));
+        try {
+          await api.upsertBudget({ user_id: userId, period, amount });
+        } catch {
+          set((state) => ({
+            addQueue: [...(state.addQueue || []), { user_id: userId, period, amount, _type: 'budget' }],
+          }));
+        }
+      },
+
+      syncOfflineBudgets: async (userId) => {
+        const queue = get().addQueue || [];
+        if (queue.length === 0) return;
+        const newQueue = [];
+        for (const item of queue) {
+          try {
+            await api.upsertBudget({ user_id: userId, period: item.period, amount: item.amount });
+          } catch {
+            newQueue.push(item);
+          }
+        }
+        set({ addQueue: newQueue });
       },
     }),
     {
@@ -161,8 +171,9 @@ export const useBudgetStore = create(
 
 export const useCategoryStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       categories: DEFAULT_CATEGORIES,
+      addQueue: [],
       loading: false,
 
       fetchCategories: async (userId) => {
@@ -170,7 +181,9 @@ export const useCategoryStore = create(
         try {
           const data = await api.fetchCategories(userId);
           if (data.length > 0) {
-            set({ categories: data, loading: false });
+            const dbIds = new Set(data.map(d => d.id));
+            const merged = [...DEFAULT_CATEGORIES.filter(c => !dbIds.has(c.id)), ...data];
+            set({ categories: merged, loading: false });
           } else {
             set({ loading: false });
           }
@@ -184,9 +197,35 @@ export const useCategoryStore = create(
           const data = await api.addCategory(category);
           set((state) => ({ categories: [...state.categories, data] }));
         } catch {
-          const local = { ...category, id: `local_${Date.now()}` };
-          set((state) => ({ categories: [...state.categories, local] }));
+          const local = { ...category, id: `local_${Date.now()}`, _offline: true };
+          set((state) => ({
+            categories: [...state.categories, local],
+            addQueue: [...(state.addQueue || []), local],
+          }));
         }
+      },
+
+      deleteCategory: async (id) => {
+        try {
+          await api.deleteCategory(id);
+        } catch {}
+        set((state) => ({ categories: state.categories.filter((c) => c.id !== id) }));
+      },
+
+      syncOfflineCategories: async (userId) => {
+        const queue = get().addQueue || [];
+        if (queue.length === 0) return;
+        const newQueue = [];
+        for (const item of queue) {
+          try {
+            const { id, _offline, ...payload } = item;
+            if (payload.user_id === 'offline') payload.user_id = userId;
+            await api.addCategory(payload);
+          } catch {
+            newQueue.push(item);
+          }
+        }
+        set({ addQueue: newQueue });
       },
     }),
     {
@@ -240,7 +279,7 @@ export const useGroupStore = create(
             invites: state.invites.filter((i) => i.id !== inviteId),
           }));
           if (accept) {
-            get().fetchGroups(userId);
+            await get().fetchGroups(userId);
           }
         } catch (error) {
           throw error;
@@ -256,8 +295,9 @@ export const useGroupStore = create(
 
 export const useProfileStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       profile: { wallet_balance: 0, avatar_url: null },
+      addQueue: [],
       loading: false,
 
       fetchProfile: async (userId) => {
@@ -271,12 +311,24 @@ export const useProfileStore = create(
       },
 
       updateWalletBalance: async (userId, balance) => {
+        set((state) => ({ profile: { ...state.profile, wallet_balance: balance } }));
         try {
           await api.updateWalletBalance(userId, balance);
-          set((state) => ({ profile: { ...state.profile, wallet_balance: balance } }));
-        } catch (error) {
-          throw error;
+        } catch {
+          set((state) => ({
+            addQueue: [...(state.addQueue || []), { user_id: userId, balance, _type: 'wallet' }],
+          }));
         }
+      },
+
+      syncOfflineProfile: async (userId) => {
+        const queue = get().addQueue || [];
+        if (queue.length === 0) return;
+        const last = queue[queue.length - 1];
+        try {
+          await api.updateWalletBalance(userId, last.balance);
+          set({ addQueue: [] });
+        } catch {}
       },
     }),
     {

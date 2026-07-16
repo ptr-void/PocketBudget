@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Dimensions, StatusBar, TextInput,
+  RefreshControl, Dimensions, StatusBar, TextInput, Modal,
+  ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,11 +20,11 @@ const screenWidth = Dimensions.get('window').width;
 
 export default function DashboardScreen({ navigation }) {
   const { colors, isDark } = useTheme();
-  const { user } = useAuth();
-  const { expenses, fetchExpenses, getTotal, loading } = useExpenseStore();
-  const { budgets, fetchBudgets } = useBudgetStore();
-  const { profile, fetchProfile, updateWalletBalance } = useProfileStore();
-  const { categories } = useCategoryStore();
+  const { user, offlineMode } = useAuth();
+  const { expenses, fetchExpenses, getTotal, loading, addQueue: expenseQueue, syncOfflineExpenses } = useExpenseStore();
+  const { budgets, fetchBudgets, addQueue: budgetQueue, syncOfflineBudgets } = useBudgetStore();
+  const { profile, fetchProfile, updateWalletBalance, addQueue: walletQueue, syncOfflineProfile } = useProfileStore();
+  const { categories, addQueue: categoryQueue, syncOfflineCategories } = useCategoryStore();
 
   const getCat = (expense) => {
     if (!categories) return null;
@@ -35,6 +36,8 @@ export default function DashboardScreen({ navigation }) {
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState('monthly');
   const [quickAddVisible, setQuickAddVisible] = useState(false);
+  const [syncModalVisible, setSyncModalVisible] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [editWallet, setEditWallet] = useState(false);
   const [walletInput, setWalletInput] = useState('');
 
@@ -340,6 +343,18 @@ export default function DashboardScreen({ navigation }) {
       </SafeAreaView>
 
       <View style={styles.fabContainer}>
+        {!offlineMode && ((expenseQueue?.length || 0) + (budgetQueue?.length || 0) + (walletQueue?.length || 0) + (categoryQueue?.length || 0)) > 0 && (
+          <TouchableOpacity 
+            style={[styles.syncFab, Shadow.md]} 
+            activeOpacity={0.8} 
+            onPress={() => setSyncModalVisible(true)}
+          >
+            <Ionicons name="cloud-upload" size={24} color="#FFF" />
+            <View style={styles.badgeContainer}>
+              <Text style={styles.badgeText}>{(expenseQueue?.length || 0) + (budgetQueue?.length || 0) + (walletQueue?.length || 0) + (categoryQueue?.length || 0)}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity style={Shadow.lg} activeOpacity={0.8} onPress={() => setQuickAddVisible(true)}>
           <LinearGradient
             colors={['#8B5CF6', '#6D28D9']}
@@ -357,6 +372,99 @@ export default function DashboardScreen({ navigation }) {
         onClose={() => setQuickAddVisible(false)}
         onSuccess={() => fetchExpenses(user?.id)}
       />
+
+      <Modal visible={syncModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, isDark ? styles.glassDarkPanel : styles.glassLightPanel]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, isDark && { color: '#FFF' }]}>Sync Offline Data</Text>
+              <TouchableOpacity onPress={() => setSyncModalVisible(false)} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.modalSub, isDark && { color: '#9CA3AF' }]}>You have {(expenseQueue?.length || 0) + (budgetQueue?.length || 0) + (walletQueue?.length || 0) + (categoryQueue?.length || 0)} items waiting to be synced.</Text>
+            
+            <ScrollView style={{ maxHeight: 300, marginVertical: 16 }}>
+              {expenseQueue?.map((item, i) => (
+                <View key={`exp-${item.id || i}`} style={styles.syncItemRow}>
+                  <View style={[styles.syncItemIcon, { backgroundColor: (getCat(item)?.color || colors.primary) + '20' }]}>
+                    <Ionicons name={getCat(item)?.icon || 'receipt-outline'} size={18} color={getCat(item)?.color || colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.syncItemCat, isDark && { color: '#FFF' }]}>{item.category_name || 'Expense'}</Text>
+                    <Text style={[styles.syncItemNote, isDark && { color: '#9CA3AF' }]}>{item.note || 'No note'}</Text>
+                  </View>
+                  <Text style={[styles.syncItemAmount, isDark && { color: '#FFF' }]}>{formatCurrency(item.amount)}</Text>
+                </View>
+              ))}
+              {budgetQueue?.map((item, i) => (
+                <View key={`bud-${i}`} style={styles.syncItemRow}>
+                  <View style={[styles.syncItemIcon, { backgroundColor: 'rgba(59,130,246,0.15)' }]}>
+                    <Ionicons name="calculator" size={18} color="#3B82F6" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.syncItemCat, isDark && { color: '#FFF' }]}>Budget Update</Text>
+                    <Text style={[styles.syncItemNote, isDark && { color: '#9CA3AF' }]}>{item.period} budget</Text>
+                  </View>
+                  <Text style={[styles.syncItemAmount, isDark && { color: '#FFF' }]}>{formatCurrency(item.amount)}</Text>
+                </View>
+              ))}
+              {walletQueue?.map((item, i) => (
+                <View key={`wal-${i}`} style={styles.syncItemRow}>
+                  <View style={[styles.syncItemIcon, { backgroundColor: 'rgba(16,185,129,0.15)' }]}>
+                    <Ionicons name="wallet" size={18} color="#10B981" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.syncItemCat, isDark && { color: '#FFF' }]}>Wallet Balance</Text>
+                    <Text style={[styles.syncItemNote, isDark && { color: '#9CA3AF' }]}>Balance update</Text>
+                  </View>
+                  <Text style={[styles.syncItemAmount, isDark && { color: '#FFF' }]}>{formatCurrency(item.balance)}</Text>
+                </View>
+              ))}
+              {categoryQueue?.map((item, i) => (
+                <View key={`cat-${item.id || i}`} style={styles.syncItemRow}>
+                  <View style={[styles.syncItemIcon, { backgroundColor: (item.color || '#F59E0B') + '20' }]}>
+                    <Ionicons name={item.icon || 'pricetag'} size={18} color={item.color || '#F59E0B'} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.syncItemCat, isDark && { color: '#FFF' }]}>New Category</Text>
+                    <Text style={[styles.syncItemNote, isDark && { color: '#9CA3AF' }]}>{item.name}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity 
+              style={[styles.syncNowBtn, isSyncing && { opacity: 0.7 }]}
+              disabled={isSyncing}
+              onPress={async () => {
+                if (user) {
+                  setIsSyncing(true);
+                  await Promise.all([
+                    syncOfflineExpenses(user.id),
+                    syncOfflineBudgets(user.id),
+                    syncOfflineProfile(user.id),
+                    syncOfflineCategories(user.id),
+                  ]);
+                  await Promise.all([
+                    fetchExpenses(user.id),
+                    fetchBudgets(user.id),
+                    fetchProfile(user.id),
+                  ]);
+                  setIsSyncing(false);
+                  setSyncModalVisible(false);
+                }
+              }}
+            >
+              {isSyncing ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={styles.syncNowText}>Sync Now</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -443,6 +551,36 @@ const styles = StyleSheet.create({
     bottom: 20,
     right: 20,
     zIndex: 100,
+    alignItems: 'flex-end',
+  },
+  syncFab: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#10B981',
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    position: 'relative',
+  },
+  badgeContainer: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#EF4444',
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFF',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
   fab: {
     width: 60,
@@ -451,4 +589,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  modalContent: { borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: Spacing.xl, maxHeight: '90%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: '#111827' },
+  closeButton: { padding: 4 },
+  modalSub: { fontSize: 14, color: '#6B7280', marginBottom: 8 },
+  syncItemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(156,163,175,0.2)', gap: 12 },
+  syncItemIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  syncItemCat: { fontSize: 15, fontWeight: '700', color: '#111827' },
+  syncItemNote: { fontSize: 13, color: '#6B7280' },
+  syncItemAmount: { fontSize: 15, fontWeight: '800', color: '#111827' },
+  syncNowBtn: { backgroundColor: '#10B981', borderRadius: 16, height: 56, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
+  syncNowText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
 });

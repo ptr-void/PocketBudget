@@ -18,6 +18,11 @@ export default function EditProfileScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
+    if (user?.id === 'offline') {
+      Alert.alert('Offline Mode', 'You cannot update your profile while offline.');
+      return;
+    }
+    
     if (!fullName.trim()) {
       Alert.alert('Error', 'Name cannot be empty.');
       return;

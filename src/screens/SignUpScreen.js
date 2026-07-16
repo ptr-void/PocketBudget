@@ -215,8 +215,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg, paddingHorizontal: Spacing.md,
     height: 56, marginBottom: Spacing.lg, gap: Spacing.sm,
   },
-  inputLight: { backgroundColor: '#F3F4F6' },
-  inputDark: { backgroundColor: 'rgba(0,0,0,0.3)' },
+  inputLight: { backgroundColor: '#F3F4F6', borderWidth: 1, borderColor: '#E5E7EB' },
+  inputDark: { backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   input: { flex: 1, fontSize: FontSize.md, fontWeight: '500' },
   
   button: {
